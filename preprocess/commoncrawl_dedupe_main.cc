@@ -14,6 +14,11 @@
 #include <iostream>
 
 #include <stdint.h>
+#include <string.h>
+
+#include <ctype.h>
+#include <stdlib.h>  // abort
+#include <unistd.h>
 
 namespace {
 
@@ -27,7 +32,7 @@ struct Entry {
 
 typedef util::AutoProbing<Entry, util::IdentityHash> Table;
 
-// Use 64-bit MurmurHash in the hash table.  
+// Use 64-bit MurmurHash in the hash table.
 bool IsNewLine(Table &table, StringPiece l) {
   Table::MutableIterator it;
   Entry entry;
@@ -49,18 +54,62 @@ StringPiece StripSpaces(StringPiece ret) {
 
 } // namespace
 
+
+void show_help() {
+  std::cerr << "Usage: " << std::endl
+            << "\t-h\t\tDisplay this help and exit" << std::endl
+            << "\t-a [=PATH]\tAdd each line of the file to the hash table" << std::endl
+            << "\t-l [=PATH]\tLoad the hash table from this file" << std::endl
+            << "\t-s [=PATH]\tSave the hash table to this file" << std::endl
+            << std::endl;
+}
+
 int main(int argc, char *argv[]) {
-  if (argc > 2 || (argc == 2 && (!strcmp("-h", argv[1]) || !strcmp("--help", argv[1])))) {
-    std::cerr << "Usage: " << argv[0] << " file_to_remove\nLines that appear in file_to_remove will be excluded from the output.\n" << std::endl;
-    return 1;
+  char *avalue = NULL;
+  char *lvalue = NULL;
+  char *svalue = NULL;
+  int c;
+  while ((c = getopt (argc, argv, "ha:l:s:")) != -1) {
+    switch (c) {
+      case 'h':
+        show_help();
+        return 1;
+      case 'a':
+        avalue = optarg;
+        break;
+      case 'l':
+        lvalue = optarg;
+        break;
+      case 's':
+        svalue = optarg;
+        break;
+      case '?':
+        if (optopt == 'r' || optopt == 't' || optopt == 'o')
+          fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+        else if (isprint (optopt))
+          fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+        else
+          fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
+        show_help();
+        return 1;
+      default:
+        abort ();
+    }
   }
+
   try {
     Table table;
     StringPiece l;
 
-    // If there's a file to remove lines from, add it to the hash table of lines.
-    if (argc == 2) {
-      util::FilePiece removing(argv[1]);
+    // Load Hash Table
+    if (lvalue != NULL) {
+      table.~Table();
+      new (&table) Table(lvalue);
+    }
+
+    // Add each line of the file to the hash table
+    if (avalue != NULL) {
+      util::FilePiece removing(avalue);
       while (removing.ReadLineOrEOF(l)) {
         IsNewLine(table, StripSpaces(l));
       }
@@ -80,7 +129,12 @@ int main(int argc, char *argv[]) {
         out << l << '\n';
       }
     }
-  } 
+
+    // Save Hash Table
+    if (svalue != NULL) {
+      table.WriteToFile(svalue);
+    }
+  }
   catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     return 1;
