@@ -6,6 +6,7 @@ endif()
 set(EXE_LIST
   apply_case
   commoncrawl_dedupe
+	commoncrawl_htinfo
   dedupe
   gigaword_unwrap
   process_unicode
