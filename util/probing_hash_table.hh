@@ -258,7 +258,7 @@ template <class EntryT, class HashT, class EqualT = std::equal_to<typename Entry
 #endif
 };
 
-// Resizable linear probing hash table.  This owns the memory.  
+// Resizable linear probing hash table.  This owns the memory.
 template <class EntryT, class HashT, class EqualT = std::equal_to<typename EntryT::Key> > class AutoProbing {
   private:
     typedef ProbingHashTable<EntryT, HashT, EqualT> Backend;
@@ -277,7 +277,7 @@ template <class EntryT, class HashT, class EqualT = std::equal_to<typename Entry
     }
 
     // Constructor for initializing a hash table from a file
-    AutoProbing(char *file_name) {
+    AutoProbing(const char *file_name) {
       std::size_t entries;
       int fd = util::OpenReadOrThrow(file_name);
       util::ReadOrThrow(fd, &allocated_, sizeof(std::size_t));
@@ -328,7 +328,7 @@ template <class EntryT, class HashT, class EqualT = std::equal_to<typename Entry
       return threshold_;
     }
 
-    void WriteToFile(char *name) {
+    void WriteToFile(const char *name) {
       util::scoped_fd f(util::CreateOrThrow(name));
       util::WriteOrThrow(f.get(), &allocated_, sizeof(size_t));
       std::size_t entries = Size();
